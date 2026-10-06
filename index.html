@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dona Clara Panificadora | Encomendas online</title>
+<meta name="description" content="Pães de fermentação natural e produtos coloniais. Encomende online e retire sem fila.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f4;--ink:#2b2118;--green:#1e4d3f;--gold:#e2a73b;--line:#d9dcd4;--card:#fff;--muted:#6b6459}
+@media(prefers-color-scheme:dark){:root{--bg:#14211c;--ink:#f1efe8;--green:#7fc4a8;--gold:#e2a73b;--line:#2c3f37;--card:#1c2e27;--muted:#a9b3ad}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 Georgia,serif}
+h1,h2,h3,button,.tab{font-family:"Bricolage Grotesque",system-ui,sans-serif}
+header{padding:2.5rem 1.25rem 1.5rem;max-width:960px;margin:auto}
+h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:1;margin:0 0 .75rem;font-weight:800;color:var(--green)}
+header p{max-width:52ch;margin:0;color:var(--muted)}
+nav{display:flex;gap:.5rem;max-width:960px;margin:0 auto;padding:0 1.25rem;flex-wrap:wrap}
+.tab,.chip{border:1px solid var(--line);background:transparent;color:var(--ink);padding:.5rem 1rem;border-radius:99px;cursor:pointer;font-size:.95rem}
+.tab[aria-selected=true],.chip[aria-pressed=true]{background:var(--green);color:var(--bg);border-color:var(--green)}
+main{max-width:960px;margin:1.5rem auto;padding:0 1.25rem 6rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+.item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:.4rem}
+.item h3{margin:0;font-size:1.1rem}.item p{margin:0;color:var(--muted);font-size:.9rem;flex:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.price{font-weight:700}
+button.add,button.primary{background:var(--gold);color:#2b2118;border:0;border-radius:8px;padding:.55rem 1rem;font-weight:800;cursor:pointer;font-size:.95rem}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--green);color:var(--bg);padding:.8rem 1.25rem;display:flex;justify-content:space-between;align-items:center}
+.bar button{background:var(--gold);border:0;border-radius:8px;padding:.5rem 1.1rem;font-weight:800;cursor:pointer}
+form{display:grid;gap:.9rem;max-width:520px}
+label{display:grid;gap:.25rem;font-size:.9rem}
+input,select,textarea{font:inherit;padding:.6rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.qty{display:flex;gap:.4rem;align-items:center}.qty button{width:2rem;height:2rem;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.order{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:.8rem}
+.badge{font-size:.8rem;padding:.15rem .6rem;border-radius:99px;background:var(--gold);color:#2b2118}
+.empty{color:var(--muted)}.hidden{display:none}
+@media(prefers-reduced-motion:no-preference){.item{transition:transform .15s}.item:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Dona Clara</h1>
+  <p>Pão de fermentação natural feito há 12 anos no bairro. Escolha, agende a retirada e chegue com tudo separado.</p>
+</header>
+<nav role="tablist" aria-label="Seções">
+  <button class="tab" role="tab" data-v="menu" aria-selected="true">Cardápio</button>
+  <button class="tab" role="tab" data-v="cart" aria-selected="false">Sacola</button>
+  <button class="tab" role="tab" data-v="panel" aria-selected="false">Painel da cozinha</button>
+</nav>
+<main>
+  <section id="menu">
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <section id="cart" class="hidden">
+    <div id="lines"></div>
+    <form id="form" class="hidden">
+      <label>Nome<input name="nome" required maxlength="60" autocomplete="name"></label>
+      <label>WhatsApp<input name="tel" required inputmode="tel" pattern="[0-9 ()+-]{10,}" autocomplete="tel"></label>
+      <label>Data e hora da retirada<input name="quando" type="datetime-local" required></label>
+      <label>Observações (sabores, alergias, recado)<textarea name="obs" rows="3" maxlength="300"></textarea></label>
+      <p id="aviso" class="empty"></p>
+      <button class="primary" type="submit">Enviar pedido pelo WhatsApp</button>
+    </form>
+  </section>
+  <section id="panel" class="hidden">
+    <h2>Pedidos recebidos neste aparelho</h2>
+    <div id="orders"></div>
+  </section>
+</main>
+<div class="bar hidden" id="bar"><span id="barTxt"></span><button id="goCart">Ver sacola</button></div>
+<script>
+// Configuração: troque pelo número real da padaria (DDI+DDD+número, só dígitos).
+const WHATSAPP = "5541999999999";
+const EVENT_LEAD_HOURS = 48; // antecedência mínima para bolos, tábuas e coffee break
+
+const PRODUCTS = [
+  {id:1,cat:"Pães",nome:"Pão de fermentação natural",desc:"Casca crocante, miolo úmido. 500 g.",preco:18},
+  {id:2,cat:"Pães",nome:"Pão integral de centeio",desc:"Fermentação lenta de 24 horas. 500 g.",preco:20},
+  {id:3,cat:"Pães",nome:"Baguete artesanal",desc:"Assada duas vezes ao dia.",preco:9},
+  {id:4,cat:"Coloniais",nome:"Cuca de banana",desc:"Com farofa de canela. Fatia grande.",preco:8},
+  {id:5,cat:"Coloniais",nome:"Queijo colonial (peça)",desc:"Curado, cerca de 400 g.",preco:32},
+  {id:6,cat:"Coloniais",nome:"Geleia caseira",desc:"Morango ou goiaba. Pote de 250 g.",preco:19},
+  {id:7,cat:"Eventos",evento:1,nome:"Bolo de aniversário (2 kg)",desc:"Escolha o sabor nas observações.",preco:140},
+  {id:8,cat:"Eventos",evento:1,nome:"Tábua de frios (10 pessoas)",desc:"Queijos, embutidos, frutas e pães.",preco:220},
+  {id:9,cat:"Eventos",evento:1,nome:"Coffee break (por pessoa)",desc:"Salgados, doces, café e suco. Mínimo 10.",preco:38,min:10}
+];
+const brl=n=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const $=s=>document.querySelector(s);
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+let cart=load("dc_cart",{}), cat="Todos";
+
+function el(tag,props={},...kids){const e=document.createElement(tag);Object.assign(e,props);kids.forEach(k=>e.append(k));return e}
+
+function renderMenu(){
+  const cats=["Todos",...new Set(PRODUCTS.map(p=>p.cat))];
+  $("#filters").replaceChildren(...cats.map(c=>{const b=el("button",{className:"chip",textContent:c});b.setAttribute("aria-pressed",c===cat);b.onclick=()=>{cat=c;renderMenu()};return b}));
+  $("#grid").replaceChildren(...PRODUCTS.filter(p=>cat==="Todos"||p.cat===cat).map(p=>{
+    const b=el("button",{className:"add",textContent:"Adicionar"});b.onclick=()=>change(p.id,p.min||1);
+    return el("article",{className:"item"},el("h3",{textContent:p.nome}),el("p",{textContent:p.desc}),el("div",{className:"row"},el("span",{className:"price",textContent:brl(p.preco)}),b));
+  }));
+}
+function change(id,d){cart[id]=Math.max(0,(cart[id]||0)+d);if(!cart[id])delete cart[id];save("dc_cart",cart);renderCart()}
+function items(){return Object.entries(cart).map(([id,q])=>({p:PRODUCTS.find(x=>x.id==id),q}))}
+function total(){return items().reduce((s,i)=>s+i.p.preco*i.q,0)}
+
+function renderCart(){
+  const list=items(), n=list.reduce((s,i)=>s+i.q,0);
+  $("#bar").classList.toggle("hidden",!n||!$("#menu").offsetParent);
+  $("#barTxt").textContent=`${n} item(ns) · ${brl(total())}`;
+  const box=$("#lines");
+  if(!list.length){box.replaceChildren(el("p",{className:"empty",textContent:"Sua sacola está vazia. Escolha produtos no cardápio."}));$("#form").classList.add("hidden");return}
+  box.replaceChildren(...list.map(({p,q})=>{
+    const m=el("button",{textContent:"−",ariaLabel:"Diminuir "+p.nome}),a=el("button",{textContent:"+",ariaLabel:"Aumentar "+p.nome});
+    m.onclick=()=>change(p.id,-1);a.onclick=()=>change(p.id,1);
+    return el("div",{className:"row order"},el("span",{textContent:p.nome}),el("span",{className:"qty"},m,el("b",{textContent:q}),a),el("span",{className:"price",textContent:brl(p.preco*q)}));
+  }),el("h2",{textContent:"Total: "+brl(total())}));
+  $("#form").classList.remove("hidden");
+  const ev=list.some(i=>i.p.evento);
+  $("#aviso").textContent=ev?`Encomendas de evento exigem ${EVENT_LEAD_HOURS} horas de antecedência.`:"";
+}
+
+$("#form").onsubmit=e=>{
+  e.preventDefault();
+  const f=Object.fromEntries(new FormData(e.target));
+  const quando=new Date(f.quando), list=items();
+  const lead=list.some(i=>i.p.evento)?EVENT_LEAD_HOURS:1;
+  if(quando-Date.now()<lead*3600e3){$("#aviso").textContent=`Escolha uma data com pelo menos ${lead} hora(s) de antecedência.`;return}
+  const short=list.find(i=>i.p.min&&i.q<i.p.min);
+  if(short){$("#aviso").textContent=`${short.p.nome}: mínimo de ${short.p.min}.`;return}
+  const orders=load("dc_orders",[]);
+  const order={id:Date.now(),nome:f.nome,tel:f.tel,quando:f.quando,obs:f.obs,itens:list.map(i=>`${i.q}x ${i.p.nome}`),total:total(),status:"Novo"};
+  orders.unshift(order);save("dc_orders",orders);
+  const msg=`Olá, Dona Clara! Pedido de ${order.nome}\n${order.itens.join("\n")}\nTotal: ${brl(order.total)}\nRetirada: ${quando.toLocaleString("pt-BR")}\n${order.obs?"Obs: "+order.obs:""}`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,"_blank","noopener");
+  cart={};save("dc_cart",cart);e.target.reset();renderCart();renderOrders();show("panel");
+};
+
+const STATUS=["Novo","Em produção","Pronto","Entregue"];
+function renderOrders(){
+  const orders=load("dc_orders",[]);
+  $("#orders").replaceChildren(...(orders.length?orders.map(o=>{
+    const s=el("select",{ariaLabel:"Status do pedido de "+o.nome});
+    STATUS.forEach(t=>s.append(el("option",{value:t,textContent:t,selected:t===o.status})));
+    s.onchange=()=>{o.status=s.value;save("dc_orders",orders);renderOrders()};
+    return el("div",{className:"order"},el("div",{className:"row"},el("b",{textContent:`${o.nome} · ${o.tel}`}),el("span",{className:"badge",textContent:o.status})),
+      el("p",{textContent:"Retirada: "+new Date(o.quando).toLocaleString("pt-BR")}),el("p",{textContent:o.itens.join(", ")+" — "+brl(o.total)}),o.obs?el("p",{textContent:"Obs: "+o.obs}):"",s);
+  }):[el("p",{className:"empty",textContent:"Nenhum pedido ainda. Pedidos enviados aparecem aqui, no lugar do caderno."})]));
+}
+function show(v){
+  document.querySelectorAll("main>section").forEach(s=>s.classList.toggle("hidden",s.id!==v));
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===v));
+  renderCart();
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.v));
+$("#goCart").onclick=()=>show("cart");
+renderMenu();renderCart();renderOrders();
+</script>
+</body>
+</html>
