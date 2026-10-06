@@ -2,7 +2,7 @@
 
 Web app de encomendas para a Dona Clara, panificadora artesanal de bairro com 12 anos de história.
 
-**Demo:** `https://SEU-USUARIO.github.io/dona-clara-panificadora/` (publique com o GitHub Pages, passo a passo abaixo)
+**Demo:** `https://FKokubo.github.io/dona-clara-panificadora/` (publique com o GitHub Pages, passo a passo abaixo)
 
 ## 1. Briefing do problema
 
@@ -62,7 +62,7 @@ git init
 git add .
 git commit -m "feat: web app de encomendas da Dona Clara"
 git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/dona-clara-panificadora.git
+git remote add origin https://github.com/Fkokubo/dona-clara-panificadora.git
 git push -u origin main
 ```
 
